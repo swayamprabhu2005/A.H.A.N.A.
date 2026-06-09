@@ -1,0 +1,604 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Outfit:wght@300;400;500;700&display=swap');
+
+:root {
+  --neon-blue: #00f3ff;
+  --neon-pink: #ff007f;
+  --neon-green: #39ff14;
+  --dark-bg: #03030f;
+  --panel-bg: rgba(7, 10, 26, 0.65);
+  --border-glow: rgba(0, 243, 255, 0.15);
+  --text-primary: #e2e8f0;
+  --text-dim: #708090;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Outfit', sans-serif;
+  user-select: none;
+}
+
+body {
+  background-color: var(--dark-bg);
+  color: var(--text-primary);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Background Grid Overlay */
+.cyber-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+    linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+  background-size: 100% 4px, 6px 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Base App Layout */
+#app-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  z-index: 2;
+}
+
+canvas#webgl-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* Holographic Overlay Vignette */
+.vignette {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, transparent 40%, rgba(2, 2, 12, 0.8) 100%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* HUD Header */
+.hud-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.hud-title {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 800;
+  font-size: 1.4rem;
+  letter-spacing: 3px;
+  color: var(--neon-blue);
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
+  pointer-events: auto;
+}
+
+.hud-status {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 1.5px;
+  background: rgba(0, 243, 255, 0.05);
+  border: 1px solid rgba(0, 243, 255, 0.2);
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.05);
+  color: var(--neon-blue);
+  pointer-events: auto;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--neon-green);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--neon-green);
+  animation: pulse 2s infinite;
+}
+
+.status-dot.speaking {
+  background-color: var(--neon-pink);
+  box-shadow: 0 0 8px var(--neon-pink);
+}
+
+.status-dot.listening {
+  background-color: var(--neon-blue);
+  box-shadow: 0 0 8px var(--neon-blue);
+}
+
+/* Glassmorphic Panel Base */
+.glass-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-glow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 
+    0 8px 32px 0 rgba(0, 0, 0, 0.37),
+    inset 0 0 20px rgba(0, 243, 255, 0.02);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.glass-panel:hover {
+  border-color: rgba(0, 243, 255, 0.3);
+  box-shadow: 
+    0 8px 32px 0 rgba(0, 0, 0, 0.45),
+    0 0 15px rgba(0, 243, 255, 0.05);
+}
+
+/* Sidebar Chat Interface */
+.chat-panel {
+  position: absolute;
+  right: 2rem;
+  top: 6.5rem;
+  bottom: 2rem;
+  width: 380px;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.chat-history {
+  flex-grow: 1;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+  padding-right: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar for Chat */
+.chat-history::-webkit-scrollbar {
+  width: 4px;
+}
+
+.chat-history::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+}
+
+.chat-history::-webkit-scrollbar-thumb {
+  background: rgba(0, 243, 255, 0.2);
+  border-radius: 10px;
+}
+
+.chat-history::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 243, 255, 0.4);
+}
+
+/* Message Bubbles */
+.message {
+  max-width: 85%;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  animation: slideIn 0.3s ease-out forwards;
+}
+
+.message.user {
+  align-self: flex-end;
+  background: rgba(0, 243, 255, 0.1);
+  border-right: 3px solid var(--neon-blue);
+  border-bottom-right-radius: 2px;
+}
+
+.message.avatar {
+  align-self: flex-start;
+  background: rgba(255, 0, 127, 0.05);
+  border-left: 3px solid var(--neon-pink);
+  border-bottom-left-radius: 2px;
+}
+
+.message-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  font-family: 'Orbitron', sans-serif;
+  letter-spacing: 1px;
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+.message.user .message-label {
+  color: var(--neon-blue);
+  text-align: right;
+}
+
+.message.avatar .message-label {
+  color: var(--neon-pink);
+}
+
+/* Chat Input Area */
+.chat-input-container {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.chat-input {
+  flex-grow: 1;
+  width: 0;
+  min-width: 0;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 243, 255, 0.25);
+  border-radius: 6px;
+  padding: 0.8rem 1rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.3s;
+}
+
+.chat-input:focus {
+  border-color: var(--neon-blue);
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+}
+
+.send-btn {
+  background: var(--neon-blue);
+  color: #000;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  border: none;
+  border-radius: 6px;
+  padding: 0 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 0 12px rgba(0, 243, 255, 0.3);
+}
+
+.send-btn:hover {
+  background: #fff;
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.6);
+  transform: translateY(-1px);
+}
+
+.send-btn:active {
+  transform: translateY(1px);
+}
+
+/* Control Panel (Expressions and System Settings) */
+.controls-panel {
+  display: none !important;
+  position: absolute;
+  left: 2rem;
+  bottom: 2rem;
+  width: 320px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  pointer-events: auto;
+}
+
+.panel-section-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  color: var(--neon-blue);
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(0, 243, 255, 0.15);
+  padding-bottom: 0.4rem;
+}
+
+/* Buttons Grid */
+.button-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.control-btn {
+  background: rgba(0, 243, 255, 0.04);
+  border: 1px solid rgba(0, 243, 255, 0.2);
+  color: var(--text-primary);
+  padding: 0.6rem;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.control-btn:hover {
+  background: rgba(0, 243, 255, 0.15);
+  border-color: var(--neon-blue);
+  color: var(--neon-blue);
+  box-shadow: 0 0 8px rgba(0, 243, 255, 0.2);
+}
+
+.control-btn.active {
+  background: rgba(0, 243, 255, 0.2);
+  border-color: var(--neon-blue);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
+}
+
+.control-btn.stop {
+  border-color: rgba(255, 0, 127, 0.3);
+}
+
+.control-btn.stop:hover {
+  background: rgba(255, 0, 127, 0.15);
+  border-color: var(--neon-pink);
+  color: var(--neon-pink);
+  box-shadow: 0 0 8px rgba(255, 0, 127, 0.2);
+}
+
+/* Select controls */
+.select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.select-control {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(0, 243, 255, 0.2);
+  padding: 0.5rem 0.8rem;
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+}
+
+.select-control:focus {
+  border-color: var(--neon-blue);
+}
+
+/* Audio Visualizer HUD widget */
+.audio-visualizer-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 40px;
+  padding: 0 0.5rem;
+  gap: 3px;
+  margin-top: 0.5rem;
+}
+
+.visualizer-bar {
+  flex-grow: 1;
+  height: 2px;
+  background-color: var(--neon-blue);
+  border-radius: 2px;
+  box-shadow: 0 0 6px var(--neon-blue);
+  transition: height 0.05s ease;
+}
+
+/* Micro interaction indicator */
+.voice-speaking-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.7rem;
+  color: var(--neon-pink);
+  text-shadow: 0 0 8px rgba(255, 0, 127, 0.5);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.voice-speaking-indicator.active {
+  opacity: 1;
+}
+
+.speaking-wave {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 12px;
+}
+
+.wave-bar {
+  width: 2px;
+  height: 2px;
+  background-color: var(--neon-pink);
+  animation: soundwave 0.8s ease-in-out infinite alternate;
+}
+
+.wave-bar:nth-child(2) { animation-delay: 0.15s; }
+.wave-bar:nth-child(3) { animation-delay: 0.3s; }
+.wave-bar:nth-child(4) { animation-delay: 0.45s; }
+
+/* Subtitles Overlay (bottom center) */
+.subtitles-panel {
+  position: absolute;
+  left: 50%;
+  bottom: 2.5rem;
+  transform: translateX(-50%);
+  z-index: 10;
+  width: 50%;
+  max-width: 600px;
+  text-align: center;
+  background: rgba(3, 4, 15, 0.8);
+  border: 1px dashed rgba(0, 243, 255, 0.25);
+  border-radius: 8px;
+  padding: 0.8rem 1.5rem;
+  font-size: 1.05rem;
+  font-weight: 300;
+  line-height: 1.5;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.subtitles-panel.active {
+  opacity: 1;
+}
+
+.subtitles-label {
+  display: block;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  color: var(--neon-pink);
+  margin-bottom: 0.3rem;
+  text-transform: uppercase;
+}
+
+/* Animations */
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes soundwave {
+  from { height: 2px; }
+  to { height: 12px; }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 1024px) {
+  body {
+    overflow: auto;
+  }
+  #app-container {
+    height: auto;
+    min-height: 100vh;
+    padding: 1rem;
+    gap: 1.5rem;
+  }
+  .hud-header {
+    position: static;
+    padding: 0.5rem 0;
+    pointer-events: auto;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .chat-panel {
+    position: static;
+    width: 100%;
+    height: 400px;
+    margin-top: 1rem;
+  }
+  .controls-panel {
+    position: static;
+    width: 100%;
+  }
+  .subtitles-panel {
+    position: fixed;
+    width: 90%;
+    bottom: 1rem;
+    left: 50%;
+  }
+  canvas#webgl-canvas {
+    height: 50vh;
+    position: relative;
+    border-radius: 12px;
+    border: 1px solid var(--border-glow);
+    margin-top: 0.5rem;
+  }
+  .vignette {
+    display: none;
+  }
+}
+
+/* Chat Input Microphone Button */
+.chat-mic-btn {
+  background: rgba(0, 243, 255, 0.08);
+  border: 1px solid rgba(0, 243, 255, 0.25);
+  color: var(--neon-blue);
+  border-radius: 6px;
+  padding: 0 0.8rem;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 8px rgba(0, 243, 255, 0.1);
+}
+
+.chat-mic-btn:hover {
+  background: rgba(0, 243, 255, 0.2);
+  border-color: var(--neon-blue);
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+  transform: scale(1.05);
+}
+
+.chat-mic-btn.active {
+  background: rgba(255, 0, 127, 0.25);
+  border-color: var(--neon-pink);
+  color: var(--neon-pink);
+  box-shadow: 0 0 15px rgba(255, 0, 127, 0.5);
+  animation: pulse 1.5s infinite;
+}
+
+/* Centered Voice Vibration Dashboard Panel */
+.voice-vibration-panel {
+  position: absolute;
+  left: 50%;
+  bottom: 5.0rem;
+  transform: translateX(-50%);
+  z-index: 10;
+  width: 240px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(7, 10, 26, 0.45);
+  border: 1px solid rgba(0, 243, 255, 0.15);
+  border-radius: 8px;
+  padding: 0 1rem;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.vibration-bar {
+  width: 4px;
+  height: 4px;
+  background: linear-gradient(180deg, var(--neon-blue) 0%, #0088ff 100%);
+  border-radius: 4px;
+  box-shadow: 0 0 8px var(--neon-blue);
+  transition: height 0.05s ease;
+}
