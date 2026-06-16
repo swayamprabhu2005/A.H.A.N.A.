@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Neural Avatar AI - Holographic Assistant</title>
+    <title>AHANA - Acoustic Holographic Autonomous Neural Assistant</title>
   </head>
   <body>
     <!-- Background grid overlay -->
@@ -18,23 +18,43 @@
 
       <!-- HUD Header -->
       <header class="hud-header">
-        <h1 class="hud-title" id="hud-title-text">NEURAL SYNAPSE v1.0</h1>
+        <h1 class="hud-title" id="hud-title-text">A.H.A.N.A.</h1>
         <div class="hud-status" id="system-status">
           <span class="status-dot" id="system-status-dot"></span>
           <span id="status-text">SYSTEM ACTIVE</span>
         </div>
       </header>
 
-      <!-- Subtitles Panel (centered speech feedback) -->
-      <div class="subtitles-panel" id="speech-subtitles">
-        <span class="subtitles-label">SYNTHETIC TRANSMISSION</span>
-        <p id="subtitles-text">Initializing neuro-synaptic matrix...</p>
-      </div>
+      <!-- Audio & Captions Dashboard (Left Sidebar) -->
+      <aside class="audio-dashboard glass-panel" id="audio-dashboard-container">
+        <h2 class="panel-section-title">Acoustic Interface</h2>
+        
+        <div class="panel-section">
+          <label style="font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 0.4rem; display: block; letter-spacing: 1px;">Voice Vibration</label>
+          <div class="voice-vibration-panel" id="voice-vibration-panel">
+            <!-- Dynamic vibration bars will be populated by index.ts -->
+          </div>
+        </div>
 
-      <!-- Centered Voice Vibration Dashboard Panel -->
-      <div class="voice-vibration-panel" id="voice-vibration-panel">
-        <!-- Dynamic vibration bars will be populated by index.ts -->
-      </div>
+        <div class="panel-section" style="margin-top: 1.2rem;">
+          <label style="font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 0.4rem; display: block; letter-spacing: 1px;">Transmission Feedback</label>
+          <div class="caption-toggle-container">
+            <span class="toggle-text">Show Captions</span>
+            <label class="switch">
+              <input type="checkbox" id="toggle-captions" checked>
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Embedded Captions Box -->
+        <div class="panel-section" id="sidebar-subtitles-container" style="margin-top: 1.2rem; display: block;">
+          <label style="font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 0.4rem; display: block; letter-spacing: 1px;">Captions Stream</label>
+          <div class="subtitles-box" id="speech-subtitles">
+            <p id="subtitles-text"></p>
+          </div>
+        </div>
+      </aside>
 
       <!-- Controls Panel (Left Sidebar) -->
       <aside class="controls-panel glass-panel" id="controls-panel-container">
@@ -100,7 +120,7 @@
         <div class="chat-history" id="chat-messages">
           <div class="message avatar">
             <span class="message-label">Neural Avatar AI</span>
-            Greetings, Operator. I am online. Click anywhere on the background to unlock the audio system, then type a prompt or press an expression button.
+            Greetings Operator. I am online. What do you want to ask today?
           </div>
         </div>
         <div class="chat-input-container">

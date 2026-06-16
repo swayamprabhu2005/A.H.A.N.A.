@@ -20,7 +20,7 @@ export class BloomEffect {
     const size = new THREE.Vector2(window.innerWidth, window.innerHeight);
     this.bloomPass = new UnrealBloomPass(
       size,
-      1.2,  // Bloom Strength (subtle, clean glow)
+      0.85,  // Bloom Strength (dimmer, cleaner glow)
       0.55, // Bloom Radius (spread)
       0.08  // Bloom Threshold (glow only bright neon parts)
     );

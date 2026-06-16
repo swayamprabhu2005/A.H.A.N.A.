@@ -9,6 +9,7 @@ export interface ITTSEngine {
 export class WebSpeechTTSEngine implements ITTSEngine {
   private utterance: SpeechSynthesisUtterance | null = null;
   private playing = false;
+  private timers: any[] = [];
 
   constructor() {}
 
@@ -18,9 +19,9 @@ export class WebSpeechTTSEngine implements ITTSEngine {
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       this.stop();
-      
-      this.utterance = new SpeechSynthesisUtterance(text);
       this.playing = true;
+
+      this.utterance = new SpeechSynthesisUtterance(text);
 
       // Select a decent English voice
       const voices = window.speechSynthesis.getVoices();
@@ -35,13 +36,19 @@ export class WebSpeechTTSEngine implements ITTSEngine {
       this.utterance.rate = 1.0;
       this.utterance.pitch = 1.0;
 
+      this.utterance.onstart = () => {
+        this.playEstimatedBoundaries(text, onWordBoundary);
+      };
+
       this.utterance.onend = () => {
         this.playing = false;
+        this.clearTimers();
         resolve();
       };
 
       this.utterance.onerror = (e) => {
         this.playing = false;
+        this.clearTimers();
         if (e.error !== 'interrupted') {
           reject(e);
         } else {
@@ -49,28 +56,53 @@ export class WebSpeechTTSEngine implements ITTSEngine {
         }
       };
 
-      this.utterance.onboundary = (event) => {
-        if (event.name === 'word' && onWordBoundary) {
-          const charIndex = event.charIndex;
-          // Extract the word being spoken
-          const remainingText = text.slice(charIndex);
-          const nextSpace = remainingText.indexOf(' ');
-          const word = nextSpace === -1 ? remainingText : remainingText.slice(0, nextSpace);
-          
-          // Estimate word speaking duration based on length (average 350ms)
-          const duration = Math.max(150, word.length * 55);
-          onWordBoundary(word, charIndex, duration);
-        }
-      };
-
       window.speechSynthesis.speak(this.utterance);
     });
   }
 
+  private playEstimatedBoundaries(
+    text: string,
+    onWordBoundary?: (word: string, charIndex: number, duration: number) => void
+  ) {
+    if (!onWordBoundary) return;
+    
+    this.clearTimers();
+    
+    const words = text.split(/\s+/);
+    const totalDuration = words.length * 375; // average 375ms per word
+    const totalChars = text.length;
+    
+    let charAccumulator = 0;
+    
+    words.forEach((word) => {
+      if (!word.length) return;
+      
+      const wordRatio = word.length / totalChars;
+      const wordDuration = Math.max(160, totalDuration * wordRatio);
+      const startDelay = (charAccumulator / totalChars) * totalDuration;
+      
+      const currentCharIndex = charAccumulator;
+      const timerId = setTimeout(() => {
+        if (this.playing) {
+          onWordBoundary(word, currentCharIndex, wordDuration);
+        }
+      }, startDelay);
+      
+      this.timers.push(timerId);
+      charAccumulator += word.length + 1; // +1 for space
+    });
+  }
+
+  private clearTimers() {
+    this.timers.forEach((t) => clearTimeout(t));
+    this.timers = [];
+  }
+
   public stop() {
-    if (this.playing) {
+    this.playing = false;
+    this.clearTimers();
+    if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
-      this.playing = false;
     }
   }
 

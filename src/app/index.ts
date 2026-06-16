@@ -72,6 +72,7 @@ export class App {
   // Audio visualizer bars
   private visualizerBars: HTMLDivElement[] = [];
   private vibrationBars: HTMLDivElement[] = [];
+  private showCaptions = true;
 
   constructor() {
     this.initThree();
@@ -118,6 +119,7 @@ export class App {
       this.controls.minDistance = 2.0;
       this.controls.maxDistance = 6.0;
       this.controls.enablePan = false; // keep centered on face
+      this.controls.enableRotate = false; // disable manual drag rotation
       
       // Post Processing (Unreal Bloom)
       this.bloomEffect = new BloomEffect(this.renderer, this.scene, this.camera);
@@ -150,34 +152,7 @@ export class App {
   private setup2DCanvasControls() {
     if (!this.canvas2d) return;
     
-    let isDragging = false;
-    let startX = 0;
-    let startY = 0;
-    
-    this.canvas2d.addEventListener('mousedown', (e) => {
-      isDragging = true;
-      startX = e.clientX;
-      startY = e.clientY;
-    });
-    
-    window.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-      
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
-      
-      // Rotate camera around center of face
-      this.cameraRotY += dx * 0.007;
-      this.cameraRotX = THREE.MathUtils.clamp(this.cameraRotX + dy * 0.007, -1.2, 1.2);
-      
-      startX = e.clientX;
-      startY = e.clientY;
-    });
-    
-    window.addEventListener('mouseup', () => {
-      isDragging = false;
-    });
-    
+    // Zoom control only (drag rotation disabled)
     this.canvas2d.addEventListener('wheel', (e) => {
       e.preventDefault();
       // Zoom factor clamp
@@ -193,6 +168,7 @@ export class App {
     this.lipSync = new LipSync();
     
     this.faceGroup = new THREE.Group();
+    this.faceGroup.visible = false; // Hide face group until OBJ model is loaded
     this.scene.add(this.faceGroup);
 
     // Asynchronously trigger loading and rigging of extension.obj
@@ -203,6 +179,9 @@ export class App {
       // 2. Swapping the scene mesh geometries to the loaded OBJ geometry
       this.pointCloud.geometry = this.faceMesh.geometry;
       this.lineSegments.geometry = this.faceMesh.geometry;
+      
+      // 3. Reveal the face group now that the custom model is ready
+      this.faceGroup.visible = true;
       
       console.log("App: Custom OBJ model successfully loaded, calibrated, and rigged.");
     });
@@ -361,6 +340,25 @@ export class App {
       document.getElementById('btn-expr-neutral')?.classList.add('active');
       this.updateSubtitle(false);
     });
+
+    // Toggle Captions switch listener
+    const toggleCaptions = document.getElementById('toggle-captions') as HTMLInputElement;
+    const sidebarSubtitlesContainer = document.getElementById('sidebar-subtitles-container');
+    if (toggleCaptions) {
+      this.showCaptions = toggleCaptions.checked;
+      if (sidebarSubtitlesContainer) {
+        sidebarSubtitlesContainer.style.display = this.showCaptions ? 'block' : 'none';
+      }
+      toggleCaptions.addEventListener('change', () => {
+        this.showCaptions = toggleCaptions.checked;
+        if (sidebarSubtitlesContainer) {
+          sidebarSubtitlesContainer.style.display = this.showCaptions ? 'block' : 'none';
+        }
+        if (!this.showCaptions) {
+          this.updateSubtitle(false);
+        }
+      });
+    }
 
     // Microphone Buttons Toggle (supporting both HUD and Chat input mic buttons)
     const btnMic = document.getElementById('btn-toggle-mic') as HTMLButtonElement;
@@ -530,18 +528,24 @@ export class App {
     
     // Query Gemini
     const reply = await this.geminiAI.sendMessage(text);
-    this.appendChatMessage('avatar', reply);
+    if (this.showCaptions) {
+      this.appendChatMessage('avatar', reply);
+    }
     
     if (statusText) statusText.textContent = 'SPEAKING...';
     if (statusDot) statusDot.classList.add('speaking');
     this.expressions.transitionTo('smile', 0.6);
     
+    const cues = this.segmentTextIntoCues(reply);
+
     // Play speech
-    this.updateSubtitle(true, reply);
+    if (this.showCaptions && cues.length > 0) {
+      this.updateSubtitle(true, cues[0].text);
+    }
     
     try {
       this.visemeQueue = []; // clear old queue
-      await this.ttsEngine.speak(reply, (word, _charIndex, duration) => {
+      await this.ttsEngine.speak(reply, (word, charIndex, duration) => {
         // Sync Lip Sync visemes
         const startTime = performance.now();
         const wordFrames = this.visemeMapper.getVisemesForWord(word, startTime, duration);
@@ -550,6 +554,14 @@ export class App {
         // Trigger a conversational head nod occasionally
         if (Math.random() < 0.28) {
           this.headSystem.triggerNod();
+        }
+
+        // Update active subtitle chunk based on charIndex
+        if (this.showCaptions) {
+          const activeCue = cues.find(c => charIndex <= c.endChar) || cues[cues.length - 1];
+          if (activeCue) {
+            this.updateSubtitle(true, activeCue.text);
+          }
         }
       });
     } catch (err) {
@@ -563,6 +575,74 @@ export class App {
       this.expressions.transitionTo('neutral', 1.0);
       this.updateSubtitle(false);
     }
+  }
+
+  private segmentTextIntoCues(text: string): { text: string; startChar: number; endChar: number }[] {
+    const cues: { text: string; startChar: number; endChar: number }[] = [];
+    
+    // 1. Extract all words with their exact character ranges
+    interface WordWithRange {
+      word: string;
+      start: number;
+      end: number;
+    }
+    const words: WordWithRange[] = [];
+    const wordRegex = /\S+/g;
+    let match;
+    while ((match = wordRegex.exec(text)) !== null) {
+      words.push({
+        word: match[0],
+        start: match.index,
+        end: wordRegex.lastIndex
+      });
+    }
+
+    if (words.length === 0) {
+      return [{ text, startChar: 0, endChar: text.length }];
+    }
+
+    // 2. Group words into sentences
+    const sentences: WordWithRange[][] = [];
+    let currentSentence: WordWithRange[] = [];
+    
+    for (const w of words) {
+      currentSentence.push(w);
+      if (/[.!?]$/.test(w.word)) {
+        sentences.push(currentSentence);
+        currentSentence = [];
+      }
+    }
+    if (currentSentence.length > 0) {
+      sentences.push(currentSentence);
+    }
+
+    // 3. Process each sentence into caption cues (max 12 words per cue)
+    for (const sentenceWords of sentences) {
+      if (sentenceWords.length <= 15) {
+        const startChar = sentenceWords[0].start;
+        const endChar = sentenceWords[sentenceWords.length - 1].end;
+        cues.push({
+          text: text.slice(startChar, endChar).trim(),
+          startChar,
+          endChar
+        });
+      } else {
+        let currentWordIndex = 0;
+        while (currentWordIndex < sentenceWords.length) {
+          const chunkWords = sentenceWords.slice(currentWordIndex, currentWordIndex + 12);
+          const startChar = chunkWords[0].start;
+          const endChar = chunkWords[chunkWords.length - 1].end;
+          cues.push({
+            text: text.slice(startChar, endChar).trim(),
+            startChar,
+            endChar
+          });
+          currentWordIndex += 12;
+        }
+      }
+    }
+
+    return cues;
   }
 
   private appendChatMessage(sender: 'user' | 'avatar', text: string) {
@@ -786,6 +866,9 @@ export class App {
     // Clear canvas
     ctx.fillStyle = '#03030f';
     ctx.fillRect(0, 0, w, h);
+    
+    // Don't render face elements until the OBJ model is loaded
+    if (!this.faceMesh.isOBJLoaded) return;
     
     const vertexCount = this.faceMesh.getVertexCount();
     const projected: { x: number; y: number; z: number; visible: boolean }[] = [];

@@ -124,10 +124,6 @@ export class Expressions {
       
       const falloff = Math.exp(-Math.pow(x / 0.35, 2.0)) * Math.exp(-Math.pow(yDist / 0.12, 2.0));
       offset.multiplyScalar(falloff);
-    } else if (v.region === 'cheekL' || v.region === 'cheekR') {
-      // Cheeks lift up and bunch forward slightly
-      offset.y = 0.05;
-      offset.z = 0.03;
     }
     return offset;
   }
@@ -156,9 +152,6 @@ export class Expressions {
       
       const falloff = Math.exp(-Math.pow(x / 0.35, 2.0)) * Math.exp(-Math.pow(yDist / 0.12, 2.0));
       offset.multiplyScalar(falloff);
-    } else if (v.region === 'cheekL' || v.region === 'cheekR') {
-      offset.y = 0.07;
-      offset.z = 0.04;
     } else if (v.region === 'eyeL' || v.region === 'eyeR') {
       // Squint/squeeze eyes slightly
       const signY = y >= 0.3 ? 1 : -1;

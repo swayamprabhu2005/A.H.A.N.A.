@@ -35,7 +35,7 @@ export class GeminiAI {
     
     // Using gemini-2.5-flash for fast response times suitable for voice chat
     const model = this.genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.1-flash-lite',
       systemInstruction: 'You are Neural Avatar AI, a futuristic holographic AI assistant. Your interface is a glowing 3D wireframe mesh. Keep your responses short, natural, and friendly (1-2 sentences maximum). Always maintain a helpful, smart, and slightly cybernetic persona.'
     });
 

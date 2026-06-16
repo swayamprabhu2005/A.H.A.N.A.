@@ -78,8 +78,8 @@ export class LipSync {
     // Scale intensity slightly based on speech volume for organic reaction
     // (Louder volume = wider mouth opening)
     if (this.currentViseme !== 'neutral' && this.currentViseme !== 'M') {
-      const volBoost = 0.35 + speechVolume * 0.5;
-      this.intensity = THREE.MathUtils.clamp(volBoost, 0.25, 0.85);
+      const volBoost = 0.12 + speechVolume * 0.08;
+      this.intensity = THREE.MathUtils.clamp(volBoost, 0.10, 0.20);
     } else {
       this.intensity = THREE.MathUtils.lerp(this.intensity, 0.0, deltaTime * this.blendSpeed);
     }
@@ -90,13 +90,14 @@ export class LipSync {
    */
   public getOffsetForVertex(v: FaceVertex): THREE.Vector3 {
     const offset = new THREE.Vector3();
-    const yCenter = -0.33;
+    const yCenter = -0.45; // Center of the lips line
     const yDist = Math.abs(v.basePos.y - yCenter);
     
-    // Smooth spatial mouth deformation
-    if (v.basePos.z > 0 && yDist < 0.20 && Math.abs(v.basePos.x) < 0.6) {
-      const horizontalFalloff = Math.exp(-Math.pow(v.basePos.x / 0.35, 2.0));
-      const verticalFalloff = Math.exp(-Math.pow(yDist / 0.12, 2.0));
+    // Strict proximity check focused only on the lips line
+    if (v.basePos.z > 0 && yDist < 0.06 && Math.abs(v.basePos.x) < 0.28) {
+      // Smooth Gaussian falloff within the lips line
+      const horizontalFalloff = Math.exp(-Math.pow(v.basePos.x / 0.16, 2.0));
+      const verticalFalloff = Math.exp(-Math.pow(yDist / 0.035, 2.0));
       const totalFalloff = horizontalFalloff * verticalFalloff;
       
       if (totalFalloff > 0.01) {
@@ -108,21 +109,6 @@ export class LipSync {
           if (weight > 0.001) {
             const visemeOffset = this.calculateVisemeOffset(v, type);
             offset.addScaledVector(visemeOffset, weight * this.intensity * totalFalloff);
-          }
-        }
-      }
-    }
-    
-    // Handle chin movement separately for organic look
-    if (v.region === 'chin') {
-      for (const key in this.visemeWeights) {
-        const type = key as VisemeType;
-        const weight = this.visemeWeights[type];
-        if (weight > 0.001) {
-          if (type === 'A') {
-            offset.y += -0.07 * weight * this.intensity;
-          } else if (type === 'O') {
-            offset.y += -0.03 * weight * this.intensity;
           }
         }
       }
